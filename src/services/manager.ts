@@ -1,19 +1,20 @@
 import axios from "axios";
 
-export type ManagerDailyLog = {
+export type StaffDailyLog = {
   id: number;
   activity: string;
   date: string;
   status: string;
   image_url: string;
   nama_user: string;
-  nama_divisi: string;
 };
 
-export const getDailyLogManager = async (token: string): Promise<ManagerDailyLog[]> => {
+export const getDailyLogStaff = async (
+  token: string
+): Promise<StaffDailyLog[]> => {
   try {
     const response = await axios.get(
-      "http://localhost:8000/api/direktur/dailylog",
+      "http://localhost:8000/api/manager/dailylog",
       {
         headers: {
           Authorization: `Bearer ${token}`,

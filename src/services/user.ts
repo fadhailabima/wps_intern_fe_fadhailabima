@@ -20,6 +20,6 @@ export const getUser = async (token: string): Promise<User> => {
     return response.data.user;
   } catch (error) {
     console.log(error);
-    throw new Error(`Terjadi kesalahan dalam mendapatkan data admin`);
+    throw new Error(`Terjadi kesalahan dalam mendapatkan data user`);
   }
 };

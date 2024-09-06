@@ -103,25 +103,25 @@ export default function Sidebar() {
                 href="/dashboard-manager"
                 className="flex flex-row space-x-4 items-center p-2 rounded-lg hover:bg-zinc-100"
               >
-                <Icon icon="lucide:home" width="24" height="24" />
-                <span className="font-semibold text-xl flex">Home</span>
+                <Icon icon="lucide:home" width="24" height="24" color="black"/>
+                <span className="font-semibold text-xl flex text-black">Home</span>
               </Link>
               <Link
                 href="/verif-log-manager"
                 className="flex flex-row space-x-4 items-center p-2 rounded-lg hover:bg-zinc-100"
               >
-                <Icon icon="lucide:book-check" width="24" height="24" />
-                <span className="font-semibold text-xl flex">
+                <Icon icon="lucide:book-check" width="24" height="24" color="black"/>
+                <span className="font-semibold text-xl flex text-black">
                   Verif Daily Log
                 </span>
               </Link>
               <Link
-                href="/add-log-manager"
+                href="/dailylog-manager"
                 className="flex flex-row space-x-4 items-center p-2 rounded-lg hover:bg-zinc-100"
               >
-                <Icon icon="lucide:book-plus" width="24" height="24" />
-                <span className="font-semibold text-xl flex">
-                  Create Daily Log
+                <Icon icon="lucide:book-user" width="24" height="24" color="black"/>
+                <span className="font-semibold text-xl flex text-black">
+                  My Daily Log
                 </span>
               </Link>
             </>
@@ -132,16 +132,16 @@ export default function Sidebar() {
                 href="/dashboard-staff"
                 className="flex flex-row space-x-4 items-center p-2 rounded-lg hover:bg-zinc-100"
               >
-                <Icon icon="lucide:home" width="24" height="24" />
-                <span className="font-semibold text-xl flex">Home</span>
+                <Icon icon="lucide:home" width="24" height="24" color="black"/>
+                <span className="font-semibold text-xl flex text-black">Home</span>
               </Link>
               <Link
                 href="/add-log-staff"
                 className="flex flex-row space-x-4 items-center p-2 rounded-lg hover:bg-zinc-100"
               >
-                <Icon icon="lucide:book-plus" width="24" height="24" />
-                <span className="font-semibold text-xl flex">
-                  Create Daily Log
+                <Icon icon="lucide:book-plus" width="24" height="24" color="black"/>
+                <span className="font-semibold text-xl flex text-black">
+                  Tambah Daily Log
                 </span>
               </Link>
             </>
@@ -164,15 +164,20 @@ export default function Sidebar() {
                   </span>
                 </Button>
               </AlertDialogTrigger>
-              <AlertDialogContent>
+              <AlertDialogContent className="bg-white text-black p-4">
                 <AlertDialogHeader>
                   <AlertDialogTitle>
                     Apakah anda yakin ingin keluar ?
                   </AlertDialogTitle>
                 </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleDialogContinue}>
+                <AlertDialogFooter className="flex justify-end space-x-2">
+                  <AlertDialogCancel className="bg-gray-200 text-black p-2 rounded">
+                    Cancel
+                  </AlertDialogCancel>
+                  <AlertDialogAction
+                    className="bg-blue-500 text-white p-2 rounded"
+                    onClick={handleDialogContinue}
+                  >
                     Continue
                   </AlertDialogAction>
                 </AlertDialogFooter>

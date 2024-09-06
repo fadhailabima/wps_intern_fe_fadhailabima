@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { getDailyLogManager, ManagerDailyLog } from "@/services/direktur";
+import { getDailyLogUser, UserDailyLog } from "@/services/dailyLog";
 import { getUser, User } from "@/services/user";
 import { Button } from "@/components/ui/button";
 import { addDays, format, subMonths } from "date-fns";
@@ -22,6 +22,7 @@ export default function Dashboard({
   const router = useRouter();
 
   const [user, setUser] = useState<User | null>(null);
+  const statusLog = ["Accept", "Decline", "Pending"];
 
   const getUserData = async (token: string) => {
     const res = await getUser(token);
@@ -37,10 +38,10 @@ export default function Dashboard({
     }
   }, []);
 
-  const [dailyLog, setDailyLog] = useState<ManagerDailyLog[] | null>(null);
+  const [dailyLog, setDailyLog] = useState<UserDailyLog[] | null>(null);
 
   const getDailyLog = async (token: string) => {
-    const res = await getDailyLogManager(token);
+    const res = await getDailyLogUser(token);
     setDailyLog(res);
   };
 
@@ -86,15 +87,19 @@ export default function Dashboard({
         return false;
       }
 
-      return (
-        item.status !== "Pending" &&
-        (item.nama_user.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          item.nama_divisi.includes(searchTerm)) &&
-        (filterTerm === "" || item.status === filterTerm)
-      );
+      return filterTerm === "" || item.status === filterTerm;
     })
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    .sort((a, b) => {
+      // Sort by status
+      const statusComparison =
+        statusLog.indexOf(a.status) - statusLog.indexOf(b.status);
+      if (statusComparison !== 0) {
+        return statusComparison;
+      }
 
+      // If status is the same, sort by date
+      return new Date(b.date).getTime() - new Date(a.date).getTime();
+    });
   const totalPages = Math.ceil((filteredItems?.length ?? 0) / itemsPerPage);
   const currentItems = filteredItems?.slice(
     (currentPage - 1) * itemsPerPage,
@@ -108,9 +113,7 @@ export default function Dashboard({
           Selamat Datang {user?.nama}
         </h1>
       </div>
-      <h3 className="mt-6 text-xl text-gray-500">
-        Monitoring Daily Log Manager
-      </h3>
+      <h3 className="mt-6 text-xl text-gray-500">My Daily Log</h3>
       <div className="flex justify-between items-center">
         <Input
           className="mt-2"
@@ -132,6 +135,7 @@ export default function Dashboard({
           <option value="">All</option>
           <option value="Accept">Accept</option>
           <option value="Decline">Decline</option>
+          <option value="Pending">Pending</option>
         </select>
         <div className={cn("grid gap-2", className)}>
           <Popover>
@@ -187,18 +191,6 @@ export default function Dashboard({
                     </th>
                     <th
                       scope="col"
-                      className="text-center py-3 text-xs font-medium tracking-wider text-gray-500 uppercase"
-                    >
-                      Nama Karyawan
-                    </th>
-                    <th
-                      scope="col"
-                      className="text-center py-3 text-xs font-medium tracking-wider  text-gray-500 uppercase"
-                    >
-                      Divisi
-                    </th>
-                    <th
-                      scope="col"
                       className="text-center py-3 text-xs font-medium tracking-wider  text-gray-500 uppercase"
                     >
                       Tanggal Log
@@ -233,16 +225,7 @@ export default function Dashboard({
                         {i + 1}
                       </td>
                       <td className="text-center py-4 text-sm text-gray-500 whitespace-nowrap">
-                        {log.nama_user}
-                      </td>
-                      <td className="text-center py-4 text-sm text-gray-500 whitespace-nowrap">
-                        {log.nama_divisi}
-                      </td>
-                      <td className="text-center py-4 text-sm text-gray-500 whitespace-nowrap">
                         {log.date}
-                      </td>
-                      <td className="text-center py-4 text-sm text-gray-500 whitespace-nowrap">
-                        {log.status}
                       </td>
                       <td className="text-center py-4 text-sm text-gray-500 whitespace-nowrap">
                         <button
@@ -268,6 +251,9 @@ export default function Dashboard({
                         ) : (
                           "Tidak ada bukti pekerjaan"
                         )}
+                      </td>
+                      <td className="text-center py-4 text-sm text-gray-500 whitespace-nowrap">
+                        {log.status}
                       </td>
                     </tr>
                   ))}

@@ -2,46 +2,18 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getDailyLogManager, ManagerDailyLog } from "@/services/direktur";
-import { getUser, User } from "@/services/user";
+import { changeStatusLog } from "@/services/dailyLog";
 import { Button } from "@/components/ui/button";
-import { addDays, format, subMonths } from "date-fns";
-import { Calendar as CalendarIcon } from "lucide-react";
-import { DateRange } from "react-day-picker";
 import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
-import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 
-export default function Dashboard({
-  className,
-}: React.HTMLAttributes<HTMLDivElement>) {
+export default function verifLogDirektur() {
   const router = useRouter();
+  const [data, setData] = useState<ManagerDailyLog[] | null>(null);
+  const [error, setError] = useState(false);
 
-  const [user, setUser] = useState<User | null>(null);
-
-  const getUserData = async (token: string) => {
-    const res = await getUser(token);
-    setUser(res);
-  };
-
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      router.push("/");
-    } else {
-      getUserData(token);
-    }
-  }, []);
-
-  const [dailyLog, setDailyLog] = useState<ManagerDailyLog[] | null>(null);
-
-  const getDailyLog = async (token: string) => {
+  const getData = async (token: string) => {
     const res = await getDailyLogManager(token);
-    setDailyLog(res);
+    setData(res);
   };
 
   useEffect(() => {
@@ -49,7 +21,7 @@ export default function Dashboard({
     if (!token) {
       router.push("/");
     } else {
-      getDailyLog(token);
+      getData(token);
     }
   }, []);
 
@@ -66,33 +38,50 @@ export default function Dashboard({
       alert("No activity description available");
     }
   };
+
+  const handleChangeStatus = async (id: number) => {
+    const currentItem = data?.find((item) => item.id === id);
+    let newStatus = "";
+
+    if (currentItem) {
+      if (
+        currentItem.status === "Pending" ||
+        currentItem.status === "Decline"
+      ) {
+        newStatus = "Accept";
+      } else if (currentItem.status === "Accept") {
+        newStatus = "Decline";
+      }
+
+      try {
+        const token = localStorage.getItem("token");
+        if (token) {
+          const res = await changeStatusLog(token, id, newStatus);
+          if (res !== undefined) {
+            getData(token);
+          }
+        }
+      } catch (error) {
+        console.log(error);
+      }
+
+      setTimeout(() => {
+        getData(localStorage.getItem("token")!);
+      }, 100);
+    }
+  };
+
   const [searchTerm, setSearchTerm] = useState("");
   const [filterTerm, setFilterTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(8);
-  const [date, setDate] = React.useState<DateRange | undefined>(undefined);
-  const filteredItems = dailyLog
-    ?.filter((item) => {
-      const itemDate = new Date(item.date);
-      if (isNaN(itemDate.getTime())) {
-        return false;
-      }
-      if (
-        date &&
-        date.from &&
-        date.to &&
-        (itemDate < date.from || itemDate > date.to)
-      ) {
-        return false;
-      }
-
-      return (
-        item.status !== "Pending" &&
+  const filteredItems = data
+    ?.filter(
+      (item) =>
         (item.nama_user.toLowerCase().includes(searchTerm.toLowerCase()) ||
           item.nama_divisi.includes(searchTerm)) &&
         (filterTerm === "" || item.status === filterTerm)
-      );
-    })
+    )
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   const totalPages = Math.ceil((filteredItems?.length ?? 0) / itemsPerPage);
@@ -102,16 +91,11 @@ export default function Dashboard({
   );
 
   return (
-    <main className="flex-1 max-h-full p-5">
-      <div className="flex flex-col items-start justify-between pb-6 space-y-4 border-b border-black lg:items-center lg:space-y-0 lg:flex-row">
-        <h1 className="text-2xl font-semibold whitespace-nowrap text-black">
-          Selamat Datang {user?.nama}
-        </h1>
-      </div>
-      <h3 className="mt-6 text-xl text-gray-500">
-        Monitoring Daily Log Manager
-      </h3>
+    <div className="flex-1 max-h-full p-5">
       <div className="flex justify-between items-center">
+        <h2 className="text-gray-500 mt-6 text-xl text-center font-semibold pb-1">
+          Verifikasi Daily Log Manager
+        </h2>
         <Input
           className="mt-2"
           style={{ width: "500px", color: "black" }}
@@ -132,45 +116,8 @@ export default function Dashboard({
           <option value="">All</option>
           <option value="Accept">Accept</option>
           <option value="Decline">Decline</option>
+          <option value="Pending">Pending</option>
         </select>
-        <div className={cn("grid gap-2", className)}>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                id="date"
-                variant={"outline"}
-                className={cn(
-                  "w-[300px] justify-start text-left font-normal text-black",
-                  !date && "text-muted-foreground"
-                )}
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {date?.from ? (
-                  date.to ? (
-                    <>
-                      {format(date.from, "LLL dd, y")} -{" "}
-                      {format(date.to, "LLL dd, y")}
-                    </>
-                  ) : (
-                    format(date.from, "LLL dd, y")
-                  )
-                ) : (
-                  <span>Pick a date</span>
-                )}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                initialFocus
-                mode="range"
-                defaultMonth={date?.from}
-                selected={date}
-                onSelect={setDate}
-                numberOfMonths={2}
-              />
-            </PopoverContent>
-          </Popover>
-        </div>
       </div>
       <div className="flex flex-col mt-6">
         <div className="-my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
@@ -242,9 +189,6 @@ export default function Dashboard({
                         {log.date}
                       </td>
                       <td className="text-center py-4 text-sm text-gray-500 whitespace-nowrap">
-                        {log.status}
-                      </td>
-                      <td className="text-center py-4 text-sm text-gray-500 whitespace-nowrap">
                         <button
                           className="view-description-button border-none border-b border-black text-blue-500 bg-none cursor-pointer"
                           onClick={() => handleViewDescription(log.activity)}
@@ -252,7 +196,7 @@ export default function Dashboard({
                           Lihat Detail Log
                         </button>
                       </td>
-                      <td className="text-center py-4 text-sm text-gray-500 whitespace-nowrap flex items-center justify-center">
+                      <td className="text-center py-6 text-sm text-gray-500 whitespace-nowrap flex items-center justify-center">
                         {log.image_url ? (
                           <a
                             href={log.image_url}
@@ -269,6 +213,20 @@ export default function Dashboard({
                           "Tidak ada bukti pekerjaan"
                         )}
                       </td>
+                      <td className="text-center py-4 text-sm text-gray-500 whitespace-nowrap">
+                        <Button
+                          onClick={() => handleChangeStatus(log.id)}
+                          className={
+                            log.status === "Accept"
+                              ? "bg-green-600"
+                              : log.status === "Pending"
+                              ? "bg-yellow-600"
+                              : "bg-red-600"
+                          }
+                        >
+                          {log.status}
+                        </Button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -276,9 +234,7 @@ export default function Dashboard({
               <div className="flex justify-between items-center mt-2">
                 <Button
                   className="m-2"
-                  onClick={() =>
-                    setCurrentPage((old) => Math.max(old - 1, 1, totalPages))
-                  }
+                  onClick={() => setCurrentPage((old) => Math.max(old - 1, 1))}
                   disabled={currentPage === 1}
                 >
                   Previous
@@ -297,6 +253,6 @@ export default function Dashboard({
           </div>
         </div>
       </div>
-    </main>
+    </div>
   );
 }

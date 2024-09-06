@@ -59,9 +59,8 @@ export default function Home() {
                 <Input
                   onChange={(e) => setUsername(e.target.value)}
                   type="username"
-                  className="text-white"
+                  className="text-black bg-gray-200 p-2 rounded"
                   placeholder="Enter your username"
-                  style={{ borderColor: "white" }}
                 />
               </div>
 
@@ -72,9 +71,8 @@ export default function Home() {
                 <Input
                   onChange={(e) => setPassword(e.target.value)}
                   type={see ? "text" : "password"}
-                  className="text-white pr-10"
-                  placeholder="*****"
-                  style={{ borderColor: "white" }}
+                  className="text-black bg-gray-200 p-2 rounded pr-10"
+                  placeholder="Enter your password"
                 />
                 <button
                   type="button"

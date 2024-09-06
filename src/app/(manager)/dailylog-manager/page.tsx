@@ -1,25 +1,54 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { getDailyLogManager, ManagerDailyLog } from "@/services/direktur";
+import { getDailyLogUser, UserDailyLog } from "@/services/dailyLog";
 import { getUser, User } from "@/services/user";
 import { Button } from "@/components/ui/button";
-import { addDays, format, subMonths } from "date-fns";
-import { Calendar as CalendarIcon } from "lucide-react";
-import { DateRange } from "react-day-picker";
-import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
-import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import Link from "next/link";
 
-export default function Dashboard({
-  className,
-}: React.HTMLAttributes<HTMLDivElement>) {
+export default function dailyLogManager() {
   const router = useRouter();
+  const [data, setData] = useState<UserDailyLog[] | null>(null);
+
+  const getData = async (token: string) => {
+    const res = await getDailyLogUser(token);
+    setData(res);
+  };
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      router.push("/");
+    } else {
+      getData(token);
+    }
+  }, []);
+
+  const handleViewDescription = (activity: any) => {
+    if (typeof activity === "string") {
+      const newWindow = window.open("", "_blank");
+      if (newWindow) {
+        newWindow.document.write(activity);
+        newWindow.document.close();
+      } else {
+        alert("Please allow pop-ups for this website");
+      }
+    } else {
+      alert("No activity description available");
+    }
+  };
+  const [filterTerm, setFilterTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(8);
+  const filteredItems = data
+    ?.filter((item) => filterTerm === "" || item.status === filterTerm)
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+  const totalPages = Math.ceil((filteredItems?.length ?? 0) / itemsPerPage);
+  const currentItems = filteredItems?.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
   const [user, setUser] = useState<User | null>(null);
 
@@ -37,139 +66,35 @@ export default function Dashboard({
     }
   }, []);
 
-  const [dailyLog, setDailyLog] = useState<ManagerDailyLog[] | null>(null);
-
-  const getDailyLog = async (token: string) => {
-    const res = await getDailyLogManager(token);
-    setDailyLog(res);
-  };
-
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      router.push("/");
-    } else {
-      getDailyLog(token);
-    }
-  }, []);
-
-  const handleViewDescription = (activity: any) => {
-    if (typeof activity === "string") {
-      const newWindow = window.open("", "_blank");
-      if (newWindow) {
-        newWindow.document.write(activity);
-        newWindow.document.close();
-      } else {
-        alert("Please allow pop-ups for this website");
-      }
-    } else {
-      alert("No activity description available");
-    }
-  };
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filterTerm, setFilterTerm] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(8);
-  const [date, setDate] = React.useState<DateRange | undefined>(undefined);
-  const filteredItems = dailyLog
-    ?.filter((item) => {
-      const itemDate = new Date(item.date);
-      if (isNaN(itemDate.getTime())) {
-        return false;
-      }
-      if (
-        date &&
-        date.from &&
-        date.to &&
-        (itemDate < date.from || itemDate > date.to)
-      ) {
-        return false;
-      }
-
-      return (
-        item.status !== "Pending" &&
-        (item.nama_user.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          item.nama_divisi.includes(searchTerm)) &&
-        (filterTerm === "" || item.status === filterTerm)
-      );
-    })
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
-  const totalPages = Math.ceil((filteredItems?.length ?? 0) / itemsPerPage);
-  const currentItems = filteredItems?.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
-
   return (
-    <main className="flex-1 max-h-full p-5">
-      <div className="flex flex-col items-start justify-between pb-6 space-y-4 border-b border-black lg:items-center lg:space-y-0 lg:flex-row">
-        <h1 className="text-2xl font-semibold whitespace-nowrap text-black">
-          Selamat Datang {user?.nama}
-        </h1>
-      </div>
-      <h3 className="mt-6 text-xl text-gray-500">
-        Monitoring Daily Log Manager
-      </h3>
-      <div className="flex justify-between items-center">
-        <Input
-          className="mt-2"
-          style={{ width: "500px", color: "black" }}
-          type="text"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder="Search..."
-        />
-        <select
-          value={filterTerm}
-          onChange={(e) => setFilterTerm(e.target.value)}
-          className="border border-gray-300 rounded-lg shadow-sm focus:outline-none text-xs font-medium tracking-wider  text-gray-500 uppercase"
-          style={{ width: "250px", height: "40px" }}
-        >
-          <option value="" disabled selected>
-            Filter by Status
-          </option>
-          <option value="">All</option>
-          <option value="Accept">Accept</option>
-          <option value="Decline">Decline</option>
-        </select>
-        <div className={cn("grid gap-2", className)}>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                id="date"
-                variant={"outline"}
-                className={cn(
-                  "w-[300px] justify-start text-left font-normal text-black",
-                  !date && "text-muted-foreground"
-                )}
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {date?.from ? (
-                  date.to ? (
-                    <>
-                      {format(date.from, "LLL dd, y")} -{" "}
-                      {format(date.to, "LLL dd, y")}
-                    </>
-                  ) : (
-                    format(date.from, "LLL dd, y")
-                  )
-                ) : (
-                  <span>Pick a date</span>
-                )}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                initialFocus
-                mode="range"
-                defaultMonth={date?.from}
-                selected={date}
-                onSelect={setDate}
-                numberOfMonths={2}
-              />
-            </PopoverContent>
-          </Popover>
+    <div className="flex-1 max-h-full p-5">
+      <div className="flex flex-col sm:flex-row justify-between items-center space-y-2 sm:space-y-0 sm:space-x-2">
+        <h2 className="text-gray-500 mt-6 text-xl text-center font-semibold pb-1 flex-shrink-0">
+          Daily Log - {user?.nama}
+        </h2>
+        <div className="flex flex-row justify-between items-center space-x-2 w-full">
+          <div className="flex flex-col space-y-1 ml-20 mt-5">
+            <select
+              id="filter"
+              value={filterTerm}
+              onChange={(e) => setFilterTerm(e.target.value)}
+              className="border border-gray-300 rounded-lg shadow-sm focus:outline-none text-xs font-medium tracking-wider  text-gray-500 uppercase p-2"
+              style={{ width: "250px", height: "40px" }}
+            >
+              <option value="" disabled selected>
+                Filter by Status
+              </option>
+              <option value="">All</option>
+              <option value="Accept">Accept</option>
+              <option value="Decline">Decline</option>
+              <option value="Pending">Pending</option>
+            </select>
+          </div>
+          <div className="flex flex-col space-y-1">
+            <Link href="/add-log-manager">
+              <Button className="mt-6">Tambah Daily Log</Button>
+            </Link>
+          </div>
         </div>
       </div>
       <div className="flex flex-col mt-6">
@@ -184,18 +109,6 @@ export default function Dashboard({
                       className="text-center py-3 text-xs font-medium tracking-wider  text-gray-500 uppercase"
                     >
                       No
-                    </th>
-                    <th
-                      scope="col"
-                      className="text-center py-3 text-xs font-medium tracking-wider text-gray-500 uppercase"
-                    >
-                      Nama Karyawan
-                    </th>
-                    <th
-                      scope="col"
-                      className="text-center py-3 text-xs font-medium tracking-wider  text-gray-500 uppercase"
-                    >
-                      Divisi
                     </th>
                     <th
                       scope="col"
@@ -233,16 +146,7 @@ export default function Dashboard({
                         {i + 1}
                       </td>
                       <td className="text-center py-4 text-sm text-gray-500 whitespace-nowrap">
-                        {log.nama_user}
-                      </td>
-                      <td className="text-center py-4 text-sm text-gray-500 whitespace-nowrap">
-                        {log.nama_divisi}
-                      </td>
-                      <td className="text-center py-4 text-sm text-gray-500 whitespace-nowrap">
                         {log.date}
-                      </td>
-                      <td className="text-center py-4 text-sm text-gray-500 whitespace-nowrap">
-                        {log.status}
                       </td>
                       <td className="text-center py-4 text-sm text-gray-500 whitespace-nowrap">
                         <button
@@ -269,6 +173,9 @@ export default function Dashboard({
                           "Tidak ada bukti pekerjaan"
                         )}
                       </td>
+                      <td className="text-center py-4 text-sm text-gray-500 whitespace-nowrap">
+                        {log.status}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -276,9 +183,7 @@ export default function Dashboard({
               <div className="flex justify-between items-center mt-2">
                 <Button
                   className="m-2"
-                  onClick={() =>
-                    setCurrentPage((old) => Math.max(old - 1, 1, totalPages))
-                  }
+                  onClick={() => setCurrentPage((old) => Math.max(old - 1, 1))}
                   disabled={currentPage === 1}
                 >
                   Previous
@@ -297,6 +202,6 @@ export default function Dashboard({
           </div>
         </div>
       </div>
-    </main>
+    </div>
   );
 }
